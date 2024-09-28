@@ -39,14 +39,14 @@ io.on("connection", (socket) => {
 
     // Thêm người chơi vào phòng
     if (!rooms[roomID].players.player1) {
-      rooms[roomID].players.player1 = playerName;
+      rooms[roomID].players.player1 = { playerName, socketID: socket.id };
       socket.join(roomID);
       io.to(socket.id).emit("start game", {
         players: rooms[roomID].players,
         symbol: "X",
       });
     } else if (!rooms[roomID].players.player2) {
-      rooms[roomID].players.player2 = playerName;
+      rooms[roomID].players.player2 = { playerName, socketID: socket.id };
       socket.join(roomID);
       io.to(socket.id).emit("start game", {
         players: rooms[roomID].players,
@@ -65,19 +65,21 @@ io.on("connection", (socket) => {
     const room = rooms[roomID];
 
     if (room && room.board[index] === null && room.currentPlayer === symbol) {
-      room.board[index] = symbol; // Đánh dấu ô với X hoặc O
-      io.in(roomID).emit("update board", room.board); // Cập nhật bảng cho cả phòng
+      room.board[index] = symbol;
+      io.in(roomID).emit("update board", room.board);
 
-      // Kiểm tra người chiến thắng
       if (checkWinner(room.board, index, symbol)) {
-        io.in(roomID).emit("game over", `${symbol} wins!`);
+        const winnerName =
+          symbol === "X"
+            ? rooms[roomID].players.player1.playerName
+            : rooms[roomID].players.player2.playerName;
+        io.in(roomID).emit("game over", `${winnerName} wins!`);
 
-        // Reset lại trò chơi sau khi có người thắng
         setTimeout(() => {
-          room.board = Array(16 * 16).fill(null); // Reset bảng chơi
-          room.currentPlayer = "X"; // Reset người chơi đầu tiên
-          io.in(roomID).emit("reset board", room.board); // Gửi thông báo reset về client
-          io.in(roomID).emit("player turn", room.currentPlayer); // Thông báo lượt mới
+          room.board = Array(16 * 16).fill(null);
+          room.currentPlayer = "X";
+          io.in(roomID).emit("reset board", room.board);
+          io.in(roomID).emit("player turn", room.currentPlayer);
         }, 1000);
       } else {
         room.currentPlayer = room.currentPlayer === "X" ? "O" : "X";
@@ -88,6 +90,50 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
+
+    let roomID;
+    let disconnectedPlayer;
+
+    // Tìm phòng mà người chơi đã tham gia
+    for (const room in rooms) {
+      const players = rooms[room].players;
+      if (players.player1 && players.player1.socketID === socket.id) {
+        roomID = room;
+        disconnectedPlayer = "player1";
+        break;
+      } else if (players.player2 && players.player2.socketID === socket.id) {
+        roomID = room;
+        disconnectedPlayer = "player2";
+        break;
+      }
+    }
+
+    // Xử lý khi người chơi rời khỏi phòng
+    if (roomID) {
+      const playerName = rooms[roomID].players[disconnectedPlayer].playerName;
+
+      // Thông báo cho người chơi còn lại rằng một người đã rời khỏi phòng và xóa phòng
+      io.in(roomID).emit(
+        "player left",
+        `${playerName} has left the room. The room will be closed.`
+      );
+
+      // Đóng toàn bộ socket trong phòng
+      io.in(roomID).socketsLeave(roomID);
+
+      // Xóa phòng sau khi thông báo
+      delete rooms[roomID];
+      console.log(`Room ${roomID} has been deleted.`);
+    }
+  });
+  socket.on("reset board", (roomID) => {
+    const room = rooms[roomID];
+    if (room) {
+      room.board = Array(16 * 16).fill(null);
+      room.currentPlayer = "X";
+      io.in(roomID).emit("reset board", room.board);
+      io.in(roomID).emit("player turn", room.currentPlayer);
+    }
   });
 });
 
