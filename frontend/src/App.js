@@ -5,8 +5,14 @@ import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
 import "./App.css";
 
+// Kiểm tra nếu ứng dụng đang ở môi trường production (deploy) hoặc development (local)
+const socketURL =
+  process.env.NODE_ENV === "production"
+    ? "https://your-backend-url.onrender.com" // URL backend khi deploy trên Render
+    : "http://localhost:5000"; // URL backend khi phát triển local
+
 // Kết nối tới server Socket.IO
-const socket = io("http://localhost:5000");
+const socket = io(socketURL);
 
 const App = () => {
   const [board, setBoard] = useState(Array(16 * 16).fill(null));

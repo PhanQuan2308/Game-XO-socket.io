@@ -7,7 +7,9 @@ const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:3000", // Kết nối từ ReactJS ở cổng 3000
+    origin: ["http://localhost:3000", "https://game-xo-socket-io.onrender.com"], // Thêm render.com vào danh sách
+    methods: ["GET", "POST"],
+    credentials: true // Cho phép gửi cookie nếu cần
   })
 );
 
@@ -15,9 +17,10 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // Cho phép frontend kết nối
+    origin: ["http://localhost:3000", "https://game-xo-socket-io.onrender.com"], // Cho phép frontend kết nối
     methods: ["GET", "POST"],
-  },
+    credentials: true
+  }
 });
 
 let rooms = {}; // Lưu trữ các phòng và người chơi
