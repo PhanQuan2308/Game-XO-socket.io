@@ -7,7 +7,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:3000", // Cho phép kết nối từ ReactJS ở cổng 3000
+    origin: "http://localhost:3000", // Kết nối từ ReactJS ở cổng 3000
   })
 );
 
@@ -28,6 +28,7 @@ io.on("connection", (socket) => {
   socket.on("join room", ({ roomID, playerName }) => {
     console.log(`Player ${playerName} is trying to join room ${roomID}`);
 
+    // Nếu phòng chưa tồn tại, tạo phòng mới
     if (!rooms[roomID]) {
       rooms[roomID] = {
         board: Array(16 * 16).fill(null), // Bảng Tic-Tac-Toe 16x16
@@ -36,6 +37,7 @@ io.on("connection", (socket) => {
       };
     }
 
+    // Thêm người chơi vào phòng
     if (!rooms[roomID].players.player1) {
       rooms[roomID].players.player1 = playerName;
       socket.join(roomID);
@@ -52,6 +54,7 @@ io.on("connection", (socket) => {
       });
     }
 
+    // Bắt đầu trò chơi nếu cả hai người chơi đã tham gia
     if (rooms[roomID].players.player1 && rooms[roomID].players.player2) {
       io.in(roomID).emit("player turn", rooms[roomID].currentPlayer);
       io.in(roomID).emit("update players", rooms[roomID].players);
@@ -75,7 +78,7 @@ io.on("connection", (socket) => {
           room.currentPlayer = "X"; // Reset người chơi đầu tiên
           io.in(roomID).emit("reset board", room.board); // Gửi thông báo reset về client
           io.in(roomID).emit("player turn", room.currentPlayer); // Thông báo lượt mới
-        }, 1000); // Đợi 5 giây trước khi reset
+        }, 1000);
       } else {
         room.currentPlayer = room.currentPlayer === "X" ? "O" : "X";
         io.in(roomID).emit("player turn", room.currentPlayer);

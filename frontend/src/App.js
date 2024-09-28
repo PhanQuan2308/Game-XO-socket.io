@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
-import './App.css';
+import "./App.css";
 
 // Kết nối tới server Socket.IO
 const socket = io("http://localhost:5000");
@@ -77,7 +77,7 @@ const App = () => {
   return (
     <div>
       <h1>Tic-Tac-Toe</h1>
-
+      <h2>{status}</h2>
       {showPopup && (
         <div className="popup">
           <div className="popup-content">
@@ -113,8 +113,6 @@ const App = () => {
           </div>
         ))}
       </div>
-
-      <h2>{status}</h2>
 
       {showWinnerPopup && (
         <div className="popup">
