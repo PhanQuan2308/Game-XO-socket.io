@@ -9,7 +9,7 @@ app.use(
   cors({
     origin: ["http://localhost:3000", "https://game-xo-socket-io.onrender.com"], // Thêm render.com vào danh sách
     methods: ["GET", "POST"],
-    credentials: true // Cho phép gửi cookie nếu cần
+    credentials: true, // Cho phép gửi cookie nếu cần
   })
 );
 
@@ -19,8 +19,8 @@ const io = new Server(server, {
   cors: {
     origin: ["http://localhost:3000", "https://game-xo-socket-io.onrender.com"], // Cho phép frontend kết nối
     methods: ["GET", "POST"],
-    credentials: true
-  }
+    credentials: true,
+  },
 });
 
 let rooms = {}; // Lưu trữ các phòng và người chơi
@@ -137,6 +137,12 @@ io.on("connection", (socket) => {
       io.in(roomID).emit("reset board", room.board);
       io.in(roomID).emit("player turn", room.currentPlayer);
     }
+  });
+  // Lắng nghe sự kiện gửi tin nhắn
+  socket.on("send message", (message) => {
+    // Lấy roomID từ tin nhắn và gửi lại tin nhắn cho tất cả người chơi trong phòng đó
+    const { roomID } = message;
+    io.in(roomID).emit("receive message", message); // Chỉ gửi tin nhắn cho người chơi trong cùng roomID
   });
 });
 

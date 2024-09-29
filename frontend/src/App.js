@@ -1,4 +1,4 @@
-import { Button, Input, Modal } from "antd";
+import { Button, Drawer, Input, Modal } from "antd";
 import "antd/dist/reset.css"; // Reset Ant Design styles
 import confetti from "canvas-confetti";
 import React, { useEffect, useState } from "react";
@@ -24,6 +24,11 @@ const App = () => {
   const [status, setStatus] = useState("Đang tìm người chơi thứ 2...");
   const [showPopup, setShowPopup] = useState(true);
   const [showWinnerPopup, setShowWinnerPopup] = useState(false);
+
+  // State cho chat
+  const [chatVisible, setChatVisible] = useState(false);
+  const [messages, setMessages] = useState([]); // Danh sách tin nhắn
+  const [messageInput, setMessageInput] = useState(""); // Tin nhắn nhập vào
 
   // Hiển thị pháo hoa và tắt Modal sau 5 giây
   useEffect(() => {
@@ -85,6 +90,11 @@ const App = () => {
       setStatus("New game started!"); // Hiển thị New game started trên đầu
     });
 
+    // Lắng nghe sự kiện nhận tin nhắn
+    socket.on("receive message", (message) => {
+      setMessages((prevMessages) => [...prevMessages, message]); // Thêm tin nhắn mới vào danh sách
+    });
+
     return () => {
       socket.off("update board");
       socket.off("game over");
@@ -93,6 +103,7 @@ const App = () => {
       socket.off("update players");
       socket.off("reset board");
       socket.off("player left");
+      socket.off("receive message");
     };
   }, []);
 
@@ -111,6 +122,35 @@ const App = () => {
     }
   };
 
+  // Xử lý gửi tin nhắn
+  const sendMessage = () => {
+    if (messageInput.trim()) {
+      const message = {
+        playerName,
+        content: messageInput,
+        timestamp: new Date().toLocaleTimeString(),
+        roomID, // Gửi thêm roomID vào mỗi tin nhắn
+      };
+      socket.emit("send message", message); // Gửi tin nhắn tới server, kèm roomID
+
+      setMessageInput(""); // Xóa nội dung trong input
+    }
+  };
+
+  // Lắng nghe sự kiện nhận tin nhắn
+  useEffect(() => {
+    socket.on("receive message", (message) => {
+      if (message.roomID === roomID) {
+        // Chỉ nhận tin nhắn nếu cùng roomID
+        setMessages((prevMessages) => [...prevMessages, message]); // Thêm tin nhắn mới vào danh sách
+      }
+    });
+
+    return () => {
+      socket.off("receive message");
+    };
+  }, [roomID]); // Thay đổi khi roomID thay đổi
+
   // Đóng Modal người chiến thắng và reset game
   const handleClosePopup = () => {
     setShowWinnerPopup(false);
@@ -124,7 +164,14 @@ const App = () => {
       {/* Hiển thị thông báo trạng thái trên đầu */}
       <h2>{status}</h2>
       {roomID && <h2>Room ID: {roomID}</h2>}
-
+      {/* Button mở chat */}
+      <Button
+        type="primary"
+        onClick={() => setChatVisible(true)}
+        style={{ marginTop: 20 }}
+      >
+        Open Chat
+      </Button>
       {/* Popup nhập tên người chơi và Room ID */}
       <Modal
         title="Enter your name and room"
@@ -175,6 +222,37 @@ const App = () => {
           </div>
         ))}
       </div>
+
+      {/* Drawer Chat */}
+      <Drawer
+        title="Chat"
+        placement="right"
+        width={400}
+        onClose={() => setChatVisible(false)}
+        visible={chatVisible}
+      >
+        <div
+          className="chat-messages"
+          style={{ maxHeight: "300px", overflowY: "auto" }}
+        >
+          {messages.map((msg, index) => (
+            <div key={index} style={{ marginBottom: "10px" }}>
+              <strong>{msg.playerName}</strong>: {msg.content} <br />
+              <small>{msg.timestamp}</small>
+            </div>
+          ))}
+        </div>
+        <Input.TextArea
+          rows={3}
+          value={messageInput}
+          onChange={(e) => setMessageInput(e.target.value)}
+          placeholder="Type a message..."
+          style={{ marginBottom: 10 }}
+        />
+        <Button type="primary" onClick={sendMessage}>
+          Send
+        </Button>
+      </Drawer>
     </div>
   );
 };
