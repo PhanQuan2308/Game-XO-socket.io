@@ -8,7 +8,7 @@ import "./App.css";
 // Kiểm tra nếu ứng dụng đang ở môi trường production (deploy) hoặc development (local)
 const socketURL =
   process.env.NODE_ENV === "production"
-    ? "https://your-backend-url.onrender.com" // URL backend khi deploy trên Render
+    ? "https://game-xo-socket-io-1.onrender.com" // URL backend khi deploy trên Render
     : "http://localhost:5000"; // URL backend khi phát triển local
 
 // Kết nối tới server Socket.IO
